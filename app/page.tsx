@@ -46,31 +46,43 @@ export default function Home() {
               Storyboard
             </h2>
 
-            {scenes.map((scene) => (
-              <div
-                key={scene.id}
-                className="bg-white rounded-xl shadow-md p-6 mb-4"
-              >
-                <h3 className="text-xl font-bold mb-3">
-                  {scene.title}
-                </h3>
+          {scenes.map((scene) => (
+  <div
+    key={scene.id}
+    className="bg-white rounded-xl shadow-md overflow-hidden mb-6"
+  >
+    <div className="h-64 bg-gray-200 flex items-center justify-center">
+      <span className="text-gray-500">
+        Future AI Image
+      </span>
+    </div>
 
-                <div className="mb-3">
-                  <strong>Description:</strong>
-                  <p>{scene.description}</p>
-                </div>
+    <div className="p-6">
+      <h3 className="text-xl font-bold mb-3">
+        {scene.title}
+      </h3>
 
-                <div className="mb-3">
-                  <strong>Image Prompt:</strong>
-                  <p>{scene.imagePrompt}</p>
-                </div>
+      <div className="mb-3">
+        <strong>Description:</strong>
+        <p>{scene.description}</p>
+      </div>
 
-                <div>
-                  <strong>Animation Prompt:</strong>
-                  <p>{scene.animationPrompt}</p>
-                </div>
-              </div>
-            ))}
+      <div className="mb-3">
+        <strong>Image Prompt:</strong>
+        <p className="text-sm text-gray-600">
+          {scene.imagePrompt}
+        </p>
+      </div>
+
+      <div>
+        <strong>Animation Prompt:</strong>
+        <p className="text-sm text-gray-600">
+          {scene.animationPrompt}
+        </p>
+      </div>
+    </div>
+  </div>
+))}
           </div>
         )}
       </div>
