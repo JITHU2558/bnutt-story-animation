@@ -1,16 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import { generateStoryboard } from "@/lib/storyboardGenerator";
+import { Scene } from "@/types/story";
 
 export default function Home() {
   const [story, setStory] = useState("");
-  const [scenes, setScenes] = useState<string[]>([]);
+  const [scenes, setScenes] = useState<Scene[]>([]);
 
-  function generateStoryboard() {
-    const generatedScenes = story
-      .split(".")
-      .filter((scene) => scene.trim() !== "");
-
+  function handleGenerateStoryboard() {
+    const generatedScenes = generateStoryboard(story);
     setScenes(generatedScenes);
   }
 
@@ -34,7 +33,7 @@ export default function Home() {
           />
 
           <button
-            onClick={generateStoryboard}
+            onClick={handleGenerateStoryboard}
             className="bg-black text-white px-6 py-3 rounded-lg"
           >
             Generate Storyboard
@@ -47,16 +46,29 @@ export default function Home() {
               Storyboard
             </h2>
 
-            {scenes.map((scene, index) => (
+            {scenes.map((scene) => (
               <div
-                key={index}
-                className="bg-white rounded-xl shadow-md p-4 mb-4"
+                key={scene.id}
+                className="bg-white rounded-xl shadow-md p-6 mb-4"
               >
-                <h3 className="font-bold mb-2">
-                  Scene {index + 1}
+                <h3 className="text-xl font-bold mb-3">
+                  {scene.title}
                 </h3>
 
-                <p>{scene}</p>
+                <div className="mb-3">
+                  <strong>Description:</strong>
+                  <p>{scene.description}</p>
+                </div>
+
+                <div className="mb-3">
+                  <strong>Image Prompt:</strong>
+                  <p>{scene.imagePrompt}</p>
+                </div>
+
+                <div>
+                  <strong>Animation Prompt:</strong>
+                  <p>{scene.animationPrompt}</p>
+                </div>
               </div>
             ))}
           </div>
