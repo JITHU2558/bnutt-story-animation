@@ -16,16 +16,19 @@ export default function Home() {
   useState<AnimationStyle>("3D Animated Film");
 
   function handleGenerateStoryboard() {
-    const generatedScenes = generateStoryboard(story);
+  const generatedScenes = generateStoryboard(
+    story,
+    animationStyle
+  );
 
-    const detectedCharacters = detectCharacters(story);
+  const detectedCharacters = detectCharacters(story);
 
-    const characterProfiles =
-      generateCharacterProfiles(detectedCharacters);
+  const characterProfiles =
+    generateCharacterProfiles(detectedCharacters);
 
-    setScenes(generatedScenes);
-    setCharacters(characterProfiles);
-  }
+  setScenes(generatedScenes);
+  setCharacters(characterProfiles);
+}
 
   return (
     <main className="min-h-screen bg-gray-100 p-8">
@@ -189,6 +192,9 @@ export default function Home() {
                   <h3 className="text-xl font-bold mb-4">
                     {scene.title}
                   </h3>
+                  <p className="text-sm text-gray-500 mb-4">
+  Animation Style: {scene.animationStyle}
+</p>
 
                   <div className="mb-4">
                     <strong>Description:</strong>
