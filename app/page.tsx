@@ -4,10 +4,10 @@ import { useState } from "react";
 import { generateStoryboard } from "@/lib/storyboardGenerator";
 import { detectCharacters } from "@/lib/characterDetector";
 import { generateCharacterProfiles } from "@/lib/characterProfileGenerator";
+import { saveStoryboardProject } from "@/lib/projectRepository";
 import { Scene } from "@/types/story";
 import { Character } from "@/types/character";
 import { AnimationStyle } from "@/types/animationStyle";
-import { supabase } from "@/lib/supabase/client";
 
 export default function Home() {
   const [story, setStory] = useState("");
@@ -16,8 +16,18 @@ export default function Home() {
   const [animationStyle, setAnimationStyle] =
     useState<AnimationStyle>("3D Animated Film");
 
+  const [saving, setSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState("");
+
   function handleGenerateStoryboard() {
-    const detectedCharacters = detectCharacters(story);
+    if (!story.trim()) {
+      return;
+    }
+
+    setSaveMessage("");
+
+    const detectedCharacters =
+      detectCharacters(story);
 
     const characterProfiles =
       generateCharacterProfiles(
@@ -25,14 +35,61 @@ export default function Home() {
         animationStyle
       );
 
-    const generatedScenes = generateStoryboard(
-      story,
-      animationStyle,
-      characterProfiles
-    );
+    const generatedScenes =
+      generateStoryboard(
+        story,
+        animationStyle,
+        characterProfiles
+      );
 
     setCharacters(characterProfiles);
     setScenes(generatedScenes);
+  }
+
+  async function handleSaveProject() {
+    if (!story.trim()) {
+      setSaveMessage(
+        "Please enter a story before saving."
+      );
+      return;
+    }
+
+    if (scenes.length === 0) {
+      setSaveMessage(
+        "Generate the storyboard before saving."
+      );
+      return;
+    }
+
+    setSaving(true);
+    setSaveMessage("");
+
+    try {
+      const project =
+        await saveStoryboardProject(
+          {
+            name: "BNutt StoryAnimation Project",
+            story,
+            animationStyle,
+          },
+          characters,
+          scenes
+        );
+
+      setSaveMessage(
+        `Project saved successfully. Project ID: ${project.id}`
+      );
+    } catch (error) {
+      if (error instanceof Error) {
+        setSaveMessage(error.message);
+      } else {
+        setSaveMessage(
+          "Failed to save the project."
+        );
+      }
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -65,6 +122,7 @@ export default function Home() {
             className="mb-4 h-48 w-full resize-none rounded-lg border border-gray-300 p-4 focus:outline-none focus:ring-2 focus:ring-black"
           />
 
+          {/* Animation Style */}
           <div className="mb-4">
             <label
               htmlFor="animationStyle"
@@ -113,13 +171,37 @@ export default function Home() {
             </select>
           </div>
 
-          <button
-            onClick={handleGenerateStoryboard}
-            disabled={!story.trim()}
-            className="rounded-lg bg-black px-6 py-3 text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:bg-gray-400"
-          >
-            Generate Storyboard
-          </button>
+          {/* Action Buttons */}
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={handleGenerateStoryboard}
+              disabled={!story.trim()}
+              className="rounded-lg bg-black px-6 py-3 text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:bg-gray-400"
+            >
+              Generate Storyboard
+            </button>
+
+            <button
+              onClick={handleSaveProject}
+              disabled={
+                saving ||
+                !story.trim() ||
+                scenes.length === 0
+              }
+              className="rounded-lg bg-blue-600 px-6 py-3 text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-400"
+            >
+              {saving
+                ? "Saving..."
+                : "Save Project"}
+            </button>
+          </div>
+
+          {/* Save Status */}
+          {saveMessage && (
+            <p className="mt-4 rounded-lg bg-gray-50 p-3 text-sm text-gray-600">
+              {saveMessage}
+            </p>
+          )}
         </div>
 
         {/* Character Profiles */}
@@ -218,6 +300,7 @@ export default function Home() {
                     {scene.animationStyle}
                   </p>
 
+                  {/* Description */}
                   <div className="mb-4">
                     <strong>Description:</strong>
 
@@ -226,6 +309,7 @@ export default function Home() {
                     </p>
                   </div>
 
+                  {/* Characters */}
                   <div className="mb-4">
                     <strong>Characters:</strong>
 
@@ -246,6 +330,7 @@ export default function Home() {
                     )}
                   </div>
 
+                  {/* Location */}
                   <div className="mb-4">
                     <strong>Location:</strong>
 
@@ -254,6 +339,7 @@ export default function Home() {
                     </p>
                   </div>
 
+                  {/* Objects */}
                   <div className="mb-4">
                     <strong>Objects:</strong>
 
@@ -274,6 +360,7 @@ export default function Home() {
                     )}
                   </div>
 
+                  {/* Action */}
                   <div className="mb-4">
                     <strong>Action:</strong>
 
@@ -282,6 +369,7 @@ export default function Home() {
                     </p>
                   </div>
 
+                  {/* Camera */}
                   <div className="mb-4">
                     <strong>Camera:</strong>
 
@@ -304,7 +392,8 @@ export default function Home() {
 
                       <p>
                         Next Scene:{" "}
-                        {scene.continuity.nextSceneId ??
+                        {scene.continuity
+                          .nextSceneId ??
                           "None"}
                       </p>
 
