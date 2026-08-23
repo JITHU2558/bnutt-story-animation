@@ -16,21 +16,22 @@ export default function Home() {
   useState<AnimationStyle>("3D Animated Film");
 
   function handleGenerateStoryboard() {
-  const generatedScenes = generateStoryboard(
-    story,
-    animationStyle
-  );
-
   const detectedCharacters = detectCharacters(story);
 
   const characterProfiles =
-  generateCharacterProfiles(                         
-    detectedCharacters,
-    animationStyle
+    generateCharacterProfiles(
+      detectedCharacters,
+      animationStyle
+    );
+
+  const generatedScenes = generateStoryboard(
+    story,
+    animationStyle,
+    characterProfiles
   );
 
-  setScenes(generatedScenes);
   setCharacters(characterProfiles);
+  setScenes(generatedScenes);
 }
 
   return (

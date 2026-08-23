@@ -2,15 +2,17 @@ import { Scene } from "../types/story";
 import { AnimationStyle } from "../types/animationStyle";
 import {
   createTitle,
-  createImagePrompt,
-  createAnimationPrompt,
 } from "./promptGenerator";
 import { analyzeScene } from "./sceneAnalyzer";
 import { analyzeSceneContinuity } from "./continuityAnalyzer";
+import { buildMasterImagePrompt } from "./masterPromptBuilder";
+import { buildMasterAnimationPrompt } from "./masterPromptBuilder";
+import { Character } from "../types/character";
 
 export function generateStoryboard(
   story: string,
-  animationStyle: AnimationStyle
+  animationStyle: AnimationStyle,
+  characters: Character[]
 ): Scene[] {
   const sceneTexts = story
     .split(".")
@@ -38,15 +40,9 @@ export function generateStoryboard(
 
         camera: analysis.camera,
 
-        imagePrompt: createImagePrompt(
-          scene,
-          animationStyle
-        ),
+        imagePrompt: "",
 
-        animationPrompt: createAnimationPrompt(
-          scene,
-          animationStyle
-        ),
+        animationPrompt: "",
 
         animationStyle,
 
@@ -61,5 +57,20 @@ export function generateStoryboard(
     }
   );
 
-  return analyzeSceneContinuity(scenes);
+  const scenesWithContinuity =
+    analyzeSceneContinuity(scenes);
+
+  return scenesWithContinuity.map((scene) => ({
+    ...scene,
+
+    imagePrompt: buildMasterImagePrompt(
+      scene,
+      characters
+    ),
+
+    animationPrompt: buildMasterAnimationPrompt(
+      scene,
+      characters
+    ),
+  }));
 }
