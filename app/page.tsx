@@ -271,6 +271,41 @@ export default function Home() {
   </p>
 </div>
 
+<div className="mb-4">
+  <strong>Continuity:</strong>
+
+  <div className="mt-2 text-sm text-gray-600 space-y-1">
+    <p>
+      Previous Scene:{" "}
+      {scene.continuity.previousSceneId ?? "None"}
+    </p>
+
+    <p>
+      Next Scene:{" "}
+      {scene.continuity.nextSceneId ?? "None"}
+    </p>
+
+    <p>
+      Previous Location:{" "}
+      {scene.continuity.previousLocation ?? "None"}
+    </p>
+
+    <p>
+      Continuing Characters:{" "}
+      {scene.continuity.continuingCharacters.length > 0
+        ? scene.continuity.continuingCharacters.join(", ")
+        : "None"}
+    </p>
+
+    <p>
+      Continuing Objects:{" "}
+      {scene.continuity.continuingObjects.length > 0
+        ? scene.continuity.continuingObjects.join(", ")
+        : "None"}
+    </p>
+  </div>
+</div>
+
                   <div className="mb-4">
                     <strong>Image Prompt:</strong>
 

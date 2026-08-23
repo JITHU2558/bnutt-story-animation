@@ -6,47 +6,60 @@ import {
   createAnimationPrompt,
 } from "./promptGenerator";
 import { analyzeScene } from "./sceneAnalyzer";
+import { analyzeSceneContinuity } from "./continuityAnalyzer";
 
 export function generateStoryboard(
   story: string,
   animationStyle: AnimationStyle
 ): Scene[] {
-  const scenes = story
+  const sceneTexts = story
     .split(".")
     .map((scene) => scene.trim())
     .filter((scene) => scene.length > 0);
 
-  return scenes.map((scene, index) => {
-    const analysis = analyzeScene(scene);
+  const scenes: Scene[] = sceneTexts.map(
+    (scene, index) => {
+      const analysis = analyzeScene(scene);
 
-    return {
-      id: index + 1,
+      return {
+        id: index + 1,
 
-      title: createTitle(scene),
+        title: createTitle(scene),
 
-      description: scene,
+        description: scene,
 
-      characters: analysis.characters,
+        characters: analysis.characters,
 
-      location: analysis.location,
+        location: analysis.location,
 
-      objects: analysis.objects,
+        objects: analysis.objects,
 
-      action: analysis.action,
+        action: analysis.action,
 
-      camera: analysis.camera,
+        camera: analysis.camera,
 
-      imagePrompt: createImagePrompt(
-        scene,
-        animationStyle
-      ),
+        imagePrompt: createImagePrompt(
+          scene,
+          animationStyle
+        ),
 
-      animationPrompt: createAnimationPrompt(
-        scene,
-        animationStyle
-      ),
+        animationPrompt: createAnimationPrompt(
+          scene,
+          animationStyle
+        ),
 
-      animationStyle,
-    };
-  });
+        animationStyle,
+
+        continuity: {
+          previousSceneId: null,
+          nextSceneId: null,
+          continuingCharacters: [],
+          continuingObjects: [],
+          previousLocation: null,
+        },
+      };
+    }
+  );
+
+  return analyzeSceneContinuity(scenes);
 }

@@ -1,4 +1,5 @@
 import { AnimationStyle } from "./animationStyle";
+import { SceneContinuity } from "./sceneContinuity";
 
 export interface Scene {
   id: number;
@@ -12,4 +13,5 @@ export interface Scene {
   imagePrompt: string;
   animationPrompt: string;
   animationStyle: AnimationStyle;
+  continuity: SceneContinuity;
 }
