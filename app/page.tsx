@@ -7,6 +7,7 @@ import { generateCharacterProfiles } from "@/lib/characterProfileGenerator";
 import { Scene } from "@/types/story";
 import { Character } from "@/types/character";
 import { AnimationStyle } from "@/types/animationStyle";
+import { supabase } from "@/lib/supabase/client";
 
 export default function Home() {
   const [story, setStory] = useState("");
