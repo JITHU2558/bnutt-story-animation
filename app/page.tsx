@@ -24,7 +24,10 @@ export default function Home() {
   const detectedCharacters = detectCharacters(story);
 
   const characterProfiles =
-    generateCharacterProfiles(detectedCharacters);
+  generateCharacterProfiles(                         
+    detectedCharacters,
+    animationStyle
+  );
 
   setScenes(generatedScenes);
   setCharacters(characterProfiles);
@@ -161,6 +164,10 @@ export default function Home() {
     <strong>Visual Style:</strong>{" "}
     {character.visualStyle}
   </p>
+  <p>
+  <strong>Reference Description:</strong>{" "}
+  {character.referenceDescription}
+</p>
 </div>
                 </div>
               ))}
@@ -203,6 +210,66 @@ export default function Home() {
                       {scene.description}
                     </p>
                   </div>
+
+                  <div className="mb-4">
+  <strong>Characters:</strong>
+
+  {scene.characters.length > 0 ? (
+    <ul className="list-disc list-inside mt-1 text-gray-700">
+      {scene.characters.map((character) => (
+        <li key={character}>
+          {character}
+        </li>
+      ))}
+    </ul>
+  ) : (
+    <p className="text-gray-500 mt-1">
+      No characters detected
+    </p>
+  )}
+</div>
+
+<div className="mb-4">
+  <strong>Location:</strong>
+
+  <p className="text-gray-700 mt-1">
+    {scene.location}
+  </p>
+</div>
+
+<div className="mb-4">
+  <strong>Objects:</strong>
+
+  {scene.objects.length > 0 ? (
+    <ul className="list-disc list-inside mt-1 text-gray-700">
+      {scene.objects.map((object) => (
+        <li key={object}>
+          {object}
+        </li>
+      ))}
+    </ul>
+  ) : (
+    <p className="text-gray-500 mt-1">
+      No important objects detected
+    </p>
+  )}
+</div>
+
+<div className="mb-4">
+  <strong>Action:</strong>
+
+  <p className="text-gray-700 mt-1">
+    {scene.action}
+  </p>
+</div>
+
+<div className="mb-4">
+  <strong>Camera:</strong>
+
+  <p className="text-gray-700 mt-1">
+    {scene.camera}
+  </p>
+</div>
 
                   <div className="mb-4">
                     <strong>Image Prompt:</strong>

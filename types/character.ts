@@ -10,4 +10,5 @@ export interface Character {
   personality: string;
   role: string;
   visualStyle: AnimationStyle;
+  referenceDescription: string;
 }

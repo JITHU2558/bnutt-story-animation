@@ -5,6 +5,7 @@ import {
   createImagePrompt,
   createAnimationPrompt,
 } from "./promptGenerator";
+import { analyzeScene } from "./sceneAnalyzer";
 
 export function generateStoryboard(
   story: string,
@@ -15,12 +16,37 @@ export function generateStoryboard(
     .map((scene) => scene.trim())
     .filter((scene) => scene.length > 0);
 
-  return scenes.map((scene, index) => ({
-    id: index + 1,
-    title: createTitle(scene),
-    description: scene,
-    imagePrompt: createImagePrompt(scene, animationStyle),
-    animationPrompt: createAnimationPrompt(scene, animationStyle),
-    animationStyle,
-  }));
+  return scenes.map((scene, index) => {
+    const analysis = analyzeScene(scene);
+
+    return {
+      id: index + 1,
+
+      title: createTitle(scene),
+
+      description: scene,
+
+      characters: analysis.characters,
+
+      location: analysis.location,
+
+      objects: analysis.objects,
+
+      action: analysis.action,
+
+      camera: analysis.camera,
+
+      imagePrompt: createImagePrompt(
+        scene,
+        animationStyle
+      ),
+
+      animationPrompt: createAnimationPrompt(
+        scene,
+        animationStyle
+      ),
+
+      animationStyle,
+    };
+  });
 }
