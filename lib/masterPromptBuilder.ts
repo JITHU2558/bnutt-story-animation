@@ -7,7 +7,9 @@ function getSceneCharacters(
   characters: Character[]
 ): Character[] {
   return characters.filter((character) =>
-    scene.characters.includes(character.type)
+    scene.characters.includes(
+      character.type
+    )
   );
 }
 
@@ -16,7 +18,10 @@ function buildCharacterDescriptions(
   characters: Character[]
 ): string {
   const sceneCharacters =
-    getSceneCharacters(scene, characters);
+    getSceneCharacters(
+      scene,
+      characters
+    );
 
   if (sceneCharacters.length === 0) {
     return "No specific characters detected";
@@ -33,11 +38,18 @@ function buildCharacterDescriptions(
 function buildObjectDescription(
   scene: Scene
 ): string {
-  if (scene.objects.length === 0) {
+  if (
+    scene.objectEntities.length === 0
+  ) {
     return "No important objects";
   }
 
-  return scene.objects.join(", ");
+  return scene.objectEntities
+    .map(
+      (object) =>
+        `${object.name}: ${object.referenceDescription}`
+    )
+    .join("; ");
 }
 
 function buildEnvironmentDescription(
@@ -60,7 +72,8 @@ function buildEnvironmentDescription(
 function buildContinuityDescription(
   scene: Scene
 ): string {
-  const continuity = scene.continuity;
+  const continuity =
+    scene.continuity;
 
   const parts: string[] = [];
 
@@ -71,7 +84,8 @@ function buildContinuityDescription(
   }
 
   if (
-    continuity.continuingCharacters.length > 0
+    continuity.continuingCharacters
+      .length > 0
   ) {
     parts.push(
       `Continuing characters: ${continuity.continuingCharacters.join(", ")}.`
@@ -79,7 +93,8 @@ function buildContinuityDescription(
   }
 
   if (
-    continuity.continuingObjects.length > 0
+    continuity.continuingObjects
+      .length > 0
   ) {
     parts.push(
       `Continuing objects: ${continuity.continuingObjects.join(", ")}.`
@@ -104,11 +119,13 @@ export function buildMasterImagePrompt(
       characters
     );
 
-  const objects =
+  const objectDescription =
     buildObjectDescription(scene);
 
   const environmentDescription =
-    buildEnvironmentDescription(environment);
+    buildEnvironmentDescription(
+      environment
+    );
 
   const continuity =
     buildContinuityDescription(scene);
@@ -117,12 +134,13 @@ export function buildMasterImagePrompt(
     `Visual style: ${scene.animationStyle}.`,
     `Characters: ${characterDescriptions}.`,
     environmentDescription,
-    `Important objects: ${objects}.`,
+    `Important objects: ${objectDescription}.`,
     `Action: ${scene.action}.`,
     `Camera: ${scene.camera}.`,
     `Scene description: ${scene.description}.`,
     `Continuity: ${continuity}`,
     "Maintain consistent character appearance, proportions, colors, clothing, facial features, and visual identity.",
+    "Maintain consistent object appearance, shape, color, material, proportions, and distinctive features.",
     "Maintain consistent environmental design across scenes that share the same location.",
     "Create a detailed cinematic composition suitable for animated storytelling.",
     "Use clear foreground, middle-ground, and background separation.",
@@ -141,11 +159,13 @@ export function buildMasterAnimationPrompt(
       characters
     );
 
-  const objects =
+  const objectDescription =
     buildObjectDescription(scene);
 
   const environmentDescription =
-    buildEnvironmentDescription(environment);
+    buildEnvironmentDescription(
+      environment
+    );
 
   const continuity =
     buildContinuityDescription(scene);
@@ -154,16 +174,17 @@ export function buildMasterAnimationPrompt(
     `Animation style: ${scene.animationStyle}.`,
     `Characters: ${characterDescriptions}.`,
     environmentDescription,
-    `Objects: ${objects}.`,
+    `Objects: ${objectDescription}.`,
     `Action: ${scene.action}.`,
     `Camera movement: ${scene.camera}.`,
     `Scene: ${scene.description}.`,
     `Continuity: ${continuity}`,
     "Maintain consistent character appearance throughout the animation.",
+    "Maintain consistent object appearance throughout the animation.",
     "Maintain consistent environment appearance throughout the shot.",
     "Use natural character movement.",
     "Use smooth cinematic camera motion.",
     "Preserve the environment and visual style throughout the shot.",
-    "Avoid sudden changes to character identity, clothing, proportions, colors, or environment design.",
+    "Avoid sudden changes to character identity, clothing, proportions, colors, object design, or environment design.",
   ].join(" ");
 }

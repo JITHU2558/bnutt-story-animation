@@ -11,6 +11,10 @@ import {
 } from "./masterPromptBuilder";
 import { Character } from "../types/character";
 import { generateEnvironmentProfiles } from "./environmentGenerator";
+import {
+  detectObjects,
+  resolveObjectReferences,
+} from "./objectAnalyzer";
 
 function splitStoryIntoSceneTexts(
   story: string
@@ -18,7 +22,9 @@ function splitStoryIntoSceneTexts(
   const paragraphs = story
     .split(/\n\s*\n/)
     .map((paragraph) => paragraph.trim())
-    .filter((paragraph) => paragraph.length > 0);
+    .filter(
+      (paragraph) => paragraph.length > 0
+    );
 
   if (paragraphs.length > 1) {
     return paragraphs;
@@ -27,7 +33,9 @@ function splitStoryIntoSceneTexts(
   const sentences = story
     .split(/(?<=[.!?])\s+/)
     .map((sentence) => sentence.trim())
-    .filter((sentence) => sentence.length > 0);
+    .filter(
+      (sentence) => sentence.length > 0
+    );
 
   const scenes: string[] = [];
 
@@ -86,14 +94,20 @@ export function generateStoryboard(
   const sceneTexts =
     splitStoryIntoSceneTexts(story);
 
+  const allObjects =
+    detectObjects(story);
+
   const sceneAnalyses = sceneTexts.map(
     (scene) => analyzeScene(scene)
   );
 
   const locations = sceneAnalyses
-    .map((analysis) => analysis.location)
+    .map(
+      (analysis) => analysis.location
+    )
     .filter(
-      (location) => location !== "Unknown location"
+      (location) =>
+        location !== "Unknown location"
     );
 
   const environments =
@@ -102,9 +116,44 @@ export function generateStoryboard(
       animationStyle
     );
 
+  let previousObjects =
+    allObjects.length > 0
+      ? allObjects
+      : [];
+
   const scenes: Scene[] = sceneTexts.map(
     (scene, index) => {
       const analysis = sceneAnalyses[index];
+
+      const explicitObjects =
+        detectObjects(scene);
+
+      const referencedObjects =
+        resolveObjectReferences(
+          scene,
+          previousObjects
+        );
+
+      const objectEntities = [
+        ...explicitObjects,
+        ...referencedObjects,
+      ].filter(
+        (object, objectIndex, array) =>
+          array.findIndex(
+            (item) =>
+              item.name === object.name
+          ) === objectIndex
+      );
+
+      if (objectEntities.length > 0) {
+        previousObjects =
+          objectEntities;
+      }
+
+      const objectNames =
+        objectEntities.map(
+          (object) => object.name
+        );
 
       return {
         id: index + 1,
@@ -117,7 +166,9 @@ export function generateStoryboard(
 
         location: analysis.location,
 
-        objects: analysis.objects,
+        objects: objectNames,
+
+        objectEntities,
 
         action: analysis.action,
 
@@ -143,27 +194,31 @@ export function generateStoryboard(
   const scenesWithContinuity =
     analyzeSceneContinuity(scenes);
 
-  return scenesWithContinuity.map((scene) => {
-    const environment = environments.find(
-      (item) =>
-        item.type === scene.location
-    );
+  return scenesWithContinuity.map(
+    (scene) => {
+      const environment =
+        environments.find(
+          (item) =>
+            item.type === scene.location
+        );
 
-    return {
-      ...scene,
+      return {
+        ...scene,
 
-      imagePrompt: buildMasterImagePrompt(
-        scene,
-        characters,
-        environment
-      ),
+        imagePrompt:
+          buildMasterImagePrompt(
+            scene,
+            characters,
+            environment
+          ),
 
-      animationPrompt:
-        buildMasterAnimationPrompt(
-          scene,
-          characters,
-          environment
-        ),
-    };
-  });
+        animationPrompt:
+          buildMasterAnimationPrompt(
+            scene,
+            characters,
+            environment
+          ),
+      };
+    }
+  );
 }

@@ -1,5 +1,6 @@
 import { AnimationStyle } from "./animationStyle";
 import { SceneContinuity } from "./sceneContinuity";
+import { StoryObject } from "./object";
 
 export interface Scene {
   id: number;
@@ -8,6 +9,7 @@ export interface Scene {
   characters: string[];
   location: string;
   objects: string[];
+  objectEntities: StoryObject[];
   action: string;
   camera: string;
   imagePrompt: string;
