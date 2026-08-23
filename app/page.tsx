@@ -13,101 +13,109 @@ export default function Home() {
   const [scenes, setScenes] = useState<Scene[]>([]);
   const [characters, setCharacters] = useState<Character[]>([]);
   const [animationStyle, setAnimationStyle] =
-  useState<AnimationStyle>("3D Animated Film");
+    useState<AnimationStyle>("3D Animated Film");
 
   function handleGenerateStoryboard() {
-  const detectedCharacters = detectCharacters(story);
+    const detectedCharacters = detectCharacters(story);
 
-  const characterProfiles =
-    generateCharacterProfiles(
-      detectedCharacters,
-      animationStyle
+    const characterProfiles =
+      generateCharacterProfiles(
+        detectedCharacters,
+        animationStyle
+      );
+
+    const generatedScenes = generateStoryboard(
+      story,
+      animationStyle,
+      characterProfiles
     );
 
-  const generatedScenes = generateStoryboard(
-    story,
-    animationStyle,
-    characterProfiles
-  );
-
-  setCharacters(characterProfiles);
-  setScenes(generatedScenes);
-}
+    setCharacters(characterProfiles);
+    setScenes(generatedScenes);
+  }
 
   return (
     <main className="min-h-screen bg-gray-100 p-8">
-      <div className="max-w-4xl mx-auto">
+      <div className="mx-auto max-w-4xl">
         {/* Header */}
-        <h1 className="text-5xl font-bold text-center mb-4">
-          BNutt StoryAnimation
-        </h1>
+        <div className="mb-8 text-center">
+          <h1 className="mb-4 text-5xl font-bold">
+            BNutt StoryAnimation
+          </h1>
 
-        <p className="text-center text-gray-600 mb-8">
-          Turn stories into animated images and videos.
-        </p>
+          <p className="text-xl text-gray-600">
+            Turn stories into animated images and
+            videos.
+          </p>
+        </div>
 
         {/* Story Input */}
-        <div className="bg-white rounded-xl shadow-md p-6 mb-8">
-          <h2 className="text-2xl font-bold mb-4">
+        <div className="mb-8 rounded-xl bg-white p-6 shadow-md">
+          <h2 className="mb-4 text-2xl font-bold">
             Create Your Story
           </h2>
 
           <textarea
             value={story}
-            onChange={(e) => setStory(e.target.value)}
+            onChange={(event) =>
+              setStory(event.target.value)
+            }
             placeholder="Write your story here..."
-            className="w-full h-48 border border-gray-300 rounded-lg p-4 mb-4 resize-none focus:outline-none focus:ring-2 focus:ring-black"
+            className="mb-4 h-48 w-full resize-none rounded-lg border border-gray-300 p-4 focus:outline-none focus:ring-2 focus:ring-black"
           />
+
           <div className="mb-4">
-  <label
-    htmlFor="animationStyle"
-    className="block font-semibold mb-2"
-  >
-    Animation Style
-  </label>
+            <label
+              htmlFor="animationStyle"
+              className="mb-2 block font-semibold"
+            >
+              Animation Style
+            </label>
 
-  <select
-    id="animationStyle"
-    value={animationStyle}
-    onChange={(e) =>
-      setAnimationStyle(e.target.value as AnimationStyle)
-    }
-    className="w-full border border-gray-300 rounded-lg p-3 bg-white"
-  >
-    <option value="2D Cartoon">
-      2D Cartoon
-    </option>
+            <select
+              id="animationStyle"
+              value={animationStyle}
+              onChange={(event) =>
+                setAnimationStyle(
+                  event.target.value as AnimationStyle
+                )
+              }
+              className="w-full rounded-lg border border-gray-300 bg-white p-3"
+            >
+              <option value="2D Cartoon">
+                2D Cartoon
+              </option>
 
-    <option value="3D Animated Film">
-      3D Animated Film
-    </option>
+              <option value="3D Animated Film">
+                3D Animated Film
+              </option>
 
-    <option value="Anime">
-      Anime
-    </option>
+              <option value="Anime">
+                Anime
+              </option>
 
-    <option value="Storybook">
-      Storybook
-    </option>
+              <option value="Storybook">
+                Storybook
+              </option>
 
-    <option value="Watercolor">
-      Watercolor
-    </option>
+              <option value="Watercolor">
+                Watercolor
+              </option>
 
-    <option value="Comic">
-      Comic
-    </option>
+              <option value="Comic">
+                Comic
+              </option>
 
-    <option value="Clay Animation">
-      Clay Animation
-    </option>
-  </select>
-</div>
+              <option value="Clay Animation">
+                Clay Animation
+              </option>
+            </select>
+          </div>
 
           <button
             onClick={handleGenerateStoryboard}
             disabled={!story.trim()}
-            className="bg-black text-white px-6 py-3 rounded-lg hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            className="rounded-lg bg-black px-6 py-3 text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:bg-gray-400"
           >
             Generate Storyboard
           </button>
@@ -115,8 +123,8 @@ export default function Home() {
 
         {/* Character Profiles */}
         {characters.length > 0 && (
-          <div className="bg-white rounded-xl shadow-md p-6 mb-8">
-            <h2 className="text-2xl font-bold mb-4">
+          <div className="mb-8 rounded-xl bg-white p-6 shadow-md">
+            <h2 className="mb-4 text-2xl font-bold">
               Character Profiles
             </h2>
 
@@ -124,52 +132,55 @@ export default function Home() {
               {characters.map((character) => (
                 <div
                   key={character.id}
-                  className="border border-gray-200 rounded-lg p-4"
+                  className="rounded-lg border border-gray-200 p-4"
                 >
-                  <h3 className="text-xl font-bold mb-3">
+                  <h3 className="mb-3 text-xl font-bold">
                     {character.name}
                   </h3>
 
                   <div className="space-y-2 text-gray-700">
-  <p>
-    <strong>Type:</strong>{" "}
-    {character.type}
-  </p>
+                    <p>
+                      <strong>Type:</strong>{" "}
+                      {character.type}
+                    </p>
 
-  <p>
-    <strong>Appearance:</strong>{" "}
-    {character.appearance}
-  </p>
+                    <p>
+                      <strong>Appearance:</strong>{" "}
+                      {character.appearance}
+                    </p>
 
-  <p>
-    <strong>Eyes:</strong>{" "}
-    {character.eyes}
-  </p>
+                    <p>
+                      <strong>Eyes:</strong>{" "}
+                      {character.eyes}
+                    </p>
 
-  <p>
-    <strong>Clothing:</strong>{" "}
-    {character.clothing}
-  </p>
+                    <p>
+                      <strong>Clothing:</strong>{" "}
+                      {character.clothing}
+                    </p>
 
-  <p>
-    <strong>Personality:</strong>{" "}
-    {character.personality}
-  </p>
+                    <p>
+                      <strong>Personality:</strong>{" "}
+                      {character.personality}
+                    </p>
 
-  <p>
-    <strong>Role:</strong>{" "}
-    {character.role}
-  </p>
+                    <p>
+                      <strong>Role:</strong>{" "}
+                      {character.role}
+                    </p>
 
-  <p>
-    <strong>Visual Style:</strong>{" "}
-    {character.visualStyle}
-  </p>
-  <p>
-  <strong>Reference Description:</strong>{" "}
-  {character.referenceDescription}
-</p>
-</div>
+                    <p>
+                      <strong>Visual Style:</strong>{" "}
+                      {character.visualStyle}
+                    </p>
+
+                    <p>
+                      <strong>
+                        Reference Description:
+                      </strong>{" "}
+                      {character.referenceDescription}
+                    </p>
+                  </div>
                 </div>
               ))}
             </div>
@@ -179,17 +190,17 @@ export default function Home() {
         {/* Storyboard */}
         {scenes.length > 0 && (
           <div>
-            <h2 className="text-2xl font-bold mb-4">
+            <h2 className="mb-4 text-2xl font-bold">
               Storyboard
             </h2>
 
             {scenes.map((scene) => (
               <div
                 key={scene.id}
-                className="bg-white rounded-xl shadow-md overflow-hidden mb-6"
+                className="mb-6 overflow-hidden rounded-xl bg-white shadow-md"
               >
                 {/* Future Image */}
-                <div className="h-64 bg-gray-200 flex items-center justify-center">
+                <div className="flex h-64 items-center justify-center bg-gray-200">
                   <span className="text-gray-500">
                     Future AI Image
                   </span>
@@ -197,128 +208,152 @@ export default function Home() {
 
                 {/* Scene Information */}
                 <div className="p-6">
-                  <h3 className="text-xl font-bold mb-4">
+                  <h3 className="mb-2 text-xl font-bold">
                     {scene.title}
                   </h3>
-                  <p className="text-sm text-gray-500 mb-4">
-  Animation Style: {scene.animationStyle}
-</p>
+
+                  <p className="mb-4 text-sm text-gray-500">
+                    Animation Style:{" "}
+                    {scene.animationStyle}
+                  </p>
 
                   <div className="mb-4">
                     <strong>Description:</strong>
 
-                    <p className="text-gray-700 mt-1">
+                    <p className="mt-1 text-gray-700">
                       {scene.description}
                     </p>
                   </div>
 
                   <div className="mb-4">
-  <strong>Characters:</strong>
+                    <strong>Characters:</strong>
 
-  {scene.characters.length > 0 ? (
-    <ul className="list-disc list-inside mt-1 text-gray-700">
-      {scene.characters.map((character) => (
-        <li key={character}>
-          {character}
-        </li>
-      ))}
-    </ul>
-  ) : (
-    <p className="text-gray-500 mt-1">
-      No characters detected
-    </p>
-  )}
-</div>
+                    {scene.characters.length > 0 ? (
+                      <ul className="mt-1 list-inside list-disc text-gray-700">
+                        {scene.characters.map(
+                          (character) => (
+                            <li key={character}>
+                              {character}
+                            </li>
+                          )
+                        )}
+                      </ul>
+                    ) : (
+                      <p className="mt-1 text-gray-500">
+                        No characters detected
+                      </p>
+                    )}
+                  </div>
 
-<div className="mb-4">
-  <strong>Location:</strong>
+                  <div className="mb-4">
+                    <strong>Location:</strong>
 
-  <p className="text-gray-700 mt-1">
-    {scene.location}
-  </p>
-</div>
+                    <p className="mt-1 text-gray-700">
+                      {scene.location}
+                    </p>
+                  </div>
 
-<div className="mb-4">
-  <strong>Objects:</strong>
+                  <div className="mb-4">
+                    <strong>Objects:</strong>
 
-  {scene.objects.length > 0 ? (
-    <ul className="list-disc list-inside mt-1 text-gray-700">
-      {scene.objects.map((object) => (
-        <li key={object}>
-          {object}
-        </li>
-      ))}
-    </ul>
-  ) : (
-    <p className="text-gray-500 mt-1">
-      No important objects detected
-    </p>
-  )}
-</div>
+                    {scene.objects.length > 0 ? (
+                      <ul className="mt-1 list-inside list-disc text-gray-700">
+                        {scene.objects.map(
+                          (object) => (
+                            <li key={object}>
+                              {object}
+                            </li>
+                          )
+                        )}
+                      </ul>
+                    ) : (
+                      <p className="mt-1 text-gray-500">
+                        No important objects detected
+                      </p>
+                    )}
+                  </div>
 
-<div className="mb-4">
-  <strong>Action:</strong>
+                  <div className="mb-4">
+                    <strong>Action:</strong>
 
-  <p className="text-gray-700 mt-1">
-    {scene.action}
-  </p>
-</div>
+                    <p className="mt-1 text-gray-700">
+                      {scene.action}
+                    </p>
+                  </div>
 
-<div className="mb-4">
-  <strong>Camera:</strong>
+                  <div className="mb-4">
+                    <strong>Camera:</strong>
 
-  <p className="text-gray-700 mt-1">
-    {scene.camera}
-  </p>
-</div>
+                    <p className="mt-1 text-gray-700">
+                      {scene.camera}
+                    </p>
+                  </div>
 
-<div className="mb-4">
-  <strong>Continuity:</strong>
+                  {/* Continuity */}
+                  <div className="mb-4">
+                    <strong>Continuity:</strong>
 
-  <div className="mt-2 text-sm text-gray-600 space-y-1">
-    <p>
-      Previous Scene:{" "}
-      {scene.continuity.previousSceneId ?? "None"}
-    </p>
+                    <div className="mt-2 space-y-1 text-sm text-gray-600">
+                      <p>
+                        Previous Scene:{" "}
+                        {scene.continuity
+                          .previousSceneId ??
+                          "None"}
+                      </p>
 
-    <p>
-      Next Scene:{" "}
-      {scene.continuity.nextSceneId ?? "None"}
-    </p>
+                      <p>
+                        Next Scene:{" "}
+                        {scene.continuity.nextSceneId ??
+                          "None"}
+                      </p>
 
-    <p>
-      Previous Location:{" "}
-      {scene.continuity.previousLocation ?? "None"}
-    </p>
+                      <p>
+                        Previous Location:{" "}
+                        {scene.continuity
+                          .previousLocation ??
+                          "None"}
+                      </p>
 
-    <p>
-      Continuing Characters:{" "}
-      {scene.continuity.continuingCharacters.length > 0
-        ? scene.continuity.continuingCharacters.join(", ")
-        : "None"}
-    </p>
+                      <p>
+                        Continuing Characters:{" "}
+                        {scene.continuity
+                          .continuingCharacters
+                          .length > 0
+                          ? scene.continuity
+                              .continuingCharacters
+                              .join(", ")
+                          : "None"}
+                      </p>
 
-    <p>
-      Continuing Objects:{" "}
-      {scene.continuity.continuingObjects.length > 0
-        ? scene.continuity.continuingObjects.join(", ")
-        : "None"}
-    </p>
-  </div>
-</div>
+                      <p>
+                        Continuing Objects:{" "}
+                        {scene.continuity
+                          .continuingObjects
+                          .length > 0
+                          ? scene.continuity
+                              .continuingObjects
+                              .join(", ")
+                          : "None"}
+                      </p>
+                    </div>
+                  </div>
 
+                  {/* Image Prompt */}
                   <div className="mb-4">
                     <strong>Image Prompt:</strong>
 
-                    <p className="text-sm text-gray-600 mt-1">
+                    <p className="mt-1 text-sm text-gray-600">
                       {scene.imagePrompt}
                     </p>
                   </div>
 
+                  {/* Animation Prompt */}
                   <div>
-                    <strong>Animation Prompt:</strong>
+                    <strong>
+                      Animation Prompt:
+                    </strong>
 
-                    <p className="text-sm text-gray-600 mt-1">
+                    <p className="mt-1 text-sm text-gray-600">
                       {scene.animationPrompt}
                     </p>
                   </div>
