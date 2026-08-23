@@ -10,6 +10,7 @@ import {
   buildMasterAnimationPrompt,
 } from "./masterPromptBuilder";
 import { Character } from "../types/character";
+import { generateEnvironmentProfiles } from "./environmentGenerator";
 
 function splitStoryIntoSceneTexts(
   story: string
@@ -38,13 +39,11 @@ function splitStoryIntoSceneTexts(
       continue;
     }
 
-    const currentAnalysis = analyzeScene(
-      currentScene
-    );
+    const currentAnalysis =
+      analyzeScene(currentScene);
 
-    const sentenceAnalysis = analyzeScene(
-      sentence
-    );
+    const sentenceAnalysis =
+      analyzeScene(sentence);
 
     const locationChanged =
       sentenceAnalysis.location !==
@@ -87,9 +86,25 @@ export function generateStoryboard(
   const sceneTexts =
     splitStoryIntoSceneTexts(story);
 
+  const sceneAnalyses = sceneTexts.map(
+    (scene) => analyzeScene(scene)
+  );
+
+  const locations = sceneAnalyses
+    .map((analysis) => analysis.location)
+    .filter(
+      (location) => location !== "Unknown location"
+    );
+
+  const environments =
+    generateEnvironmentProfiles(
+      locations,
+      animationStyle
+    );
+
   const scenes: Scene[] = sceneTexts.map(
     (scene, index) => {
-      const analysis = analyzeScene(scene);
+      const analysis = sceneAnalyses[index];
 
       return {
         id: index + 1,
@@ -128,18 +143,27 @@ export function generateStoryboard(
   const scenesWithContinuity =
     analyzeSceneContinuity(scenes);
 
-  return scenesWithContinuity.map((scene) => ({
-    ...scene,
+  return scenesWithContinuity.map((scene) => {
+    const environment = environments.find(
+      (item) =>
+        item.type === scene.location
+    );
 
-    imagePrompt: buildMasterImagePrompt(
-      scene,
-      characters
-    ),
+    return {
+      ...scene,
 
-    animationPrompt:
-      buildMasterAnimationPrompt(
+      imagePrompt: buildMasterImagePrompt(
         scene,
-        characters
+        characters,
+        environment
       ),
-  }));
+
+      animationPrompt:
+        buildMasterAnimationPrompt(
+          scene,
+          characters,
+          environment
+        ),
+    };
+  });
 }
