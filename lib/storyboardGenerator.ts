@@ -178,6 +178,8 @@ export function generateStoryboard(
 
         animationPrompt: "",
 
+        imageUrl: null,
+
         animationStyle,
 
         continuity: {

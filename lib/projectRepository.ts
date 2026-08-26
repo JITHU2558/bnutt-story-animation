@@ -3,6 +3,7 @@ import { Character } from "@/types/character";
 import { Scene } from "@/types/story";
 import { AnimationStyle } from "@/types/animationStyle";
 import { analyzeSceneContinuity } from "@/lib/continuityAnalyzer";
+import { getSceneImageUrl } from "@/lib/storageRepository";
 
 export interface CreateProjectInput {
   name: string;
@@ -67,7 +68,9 @@ export async function saveCharacters(
   projectId: string,
   characters: Character[]
 ) {
-  if (characters.length === 0) return;
+  if (characters.length === 0) {
+    return;
+  }
 
   const rows = characters.map((character) => ({
     project_id: projectId,
@@ -96,7 +99,9 @@ export async function saveScenes(
   projectId: string,
   scenes: Scene[]
 ) {
-  if (scenes.length === 0) return;
+  if (scenes.length === 0) {
+    return;
+  }
 
   const rows = scenes.map((scene) => ({
     project_id: projectId,
@@ -111,6 +116,7 @@ export async function saveScenes(
     animation_style: scene.animationStyle,
     image_prompt: scene.imagePrompt,
     animation_prompt: scene.animationPrompt,
+    image_url: scene.imageUrl ?? null,
   }));
 
   const { error } = await supabase
@@ -130,8 +136,15 @@ export async function saveStoryboardProject(
   const project = await createProject(input);
 
   try {
-    await saveCharacters(project.id, characters);
-    await saveScenes(project.id, scenes);
+    await saveCharacters(
+      project.id,
+      characters
+    );
+
+    await saveScenes(
+      project.id,
+      scenes
+    );
 
     return project;
   } catch (error) {
@@ -144,7 +157,9 @@ export async function saveStoryboardProject(
   }
 }
 
-export async function getProjects(): Promise<SavedProject[]> {
+export async function getProjects(): Promise<
+  SavedProject[]
+> {
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -180,12 +195,14 @@ export async function getProjects(): Promise<SavedProject[]> {
 export async function loadProject(
   projectId: string
 ): Promise<LoadedProject> {
-  const { data: project, error: projectError } =
-    await supabase
-      .from("projects")
-      .select("*")
-      .eq("id", projectId)
-      .single();
+  const {
+    data: project,
+    error: projectError,
+  } = await supabase
+    .from("projects")
+    .select("*")
+    .eq("id", projectId)
+    .single();
 
   if (projectError || !project) {
     throw new Error(
@@ -194,27 +211,33 @@ export async function loadProject(
     );
   }
 
-  const { data: characterRows, error: characterError } =
-    await supabase
-      .from("characters")
-      .select("*")
-      .eq("project_id", projectId)
-      .order("created_at", {
-        ascending: true,
-      });
+  const {
+    data: characterRows,
+    error: characterError,
+  } = await supabase
+    .from("characters")
+    .select("*")
+    .eq("project_id", projectId)
+    .order("created_at", {
+      ascending: true,
+    });
 
   if (characterError) {
-    throw new Error(characterError.message);
+    throw new Error(
+      characterError.message
+    );
   }
 
-  const { data: sceneRows, error: sceneError } =
-    await supabase
-      .from("scenes")
-      .select("*")
-      .eq("project_id", projectId)
-      .order("scene_number", {
-        ascending: true,
-      });
+  const {
+    data: sceneRows,
+    error: sceneError,
+  } = await supabase
+    .from("scenes")
+    .select("*")
+    .eq("project_id", projectId)
+    .order("scene_number", {
+      ascending: true,
+    });
 
   if (sceneError) {
     throw new Error(sceneError.message);
@@ -226,33 +249,61 @@ export async function loadProject(
         id: index + 1,
         name: character.name,
         type: character.type,
-        appearance: character.appearance ?? "",
+        appearance:
+          character.appearance ?? "",
         eyes: character.eyes ?? "",
-        clothing: character.clothing ?? "",
-        personality: character.personality ?? "",
+        clothing:
+          character.clothing ?? "",
+        personality:
+          character.personality ?? "",
         role: character.role ?? "",
         visualStyle:
           character.visual_style as AnimationStyle,
         referenceDescription:
-          character.reference_description ?? "",
+          character.reference_description ??
+          "",
       })
     );
 
   const rawScenes: Scene[] =
     (sceneRows ?? []).map((scene) => ({
       id: scene.scene_number,
-      title: scene.title ?? "",
-      description: scene.description ?? "",
-      characters: scene.characters ?? [],
-      location: scene.location ?? "",
-      objects: scene.objects ?? [],
-      action: scene.action ?? "",
-      camera: scene.camera ?? "",
-      imagePrompt: scene.image_prompt ?? "",
+
+      title:
+        scene.title ?? "",
+
+      description:
+        scene.description ?? "",
+
+      characters:
+        scene.characters ?? [],
+
+      location:
+        scene.location ?? "",
+
+      objects:
+        scene.objects ?? [],
+
+      objectEntities: [],
+
+      action:
+        scene.action ?? "",
+
+      camera:
+        scene.camera ?? "",
+
+      imagePrompt:
+        scene.image_prompt ?? "",
+
       animationPrompt:
         scene.animation_prompt ?? "",
+
+      imageUrl:
+        scene.image_url ?? null,
+
       animationStyle:
         scene.animation_style as AnimationStyle,
+
       continuity: {
         previousSceneId: null,
         nextSceneId: null,
@@ -265,13 +316,192 @@ export async function loadProject(
   const scenes =
     analyzeSceneContinuity(rawScenes);
 
+  const scenesWithImages =
+    await Promise.all(
+      scenes.map(async (scene) => {
+        if (!scene.imageUrl) {
+          return scene;
+        }
+
+        try {
+          const signedUrl =
+            await getSceneImageUrl(
+              scene.imageUrl
+            );
+
+          return {
+            ...scene,
+            imageUrl: signedUrl,
+          };
+        } catch {
+          return scene;
+        }
+      })
+    );
+
   return {
     id: project.id,
+
     name: project.name,
+
     story: project.story,
+
     animationStyle:
       project.animation_style as AnimationStyle,
+
     characters: loadedCharacters,
-    scenes,
+
+    scenes: scenesWithImages,
   };
+}
+
+export async function updateSceneImage(
+  projectId: string,
+  sceneNumber: number,
+  imagePath: string
+) {
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError) {
+    throw new Error(userError.message);
+  }
+
+  if (!user) {
+    throw new Error(
+      "You must be signed in."
+    );
+  }
+
+  const { data, error } = await supabase
+    .from("scenes")
+    .update({
+      image_url: imagePath,
+      updated_at:
+        new Date().toISOString(),
+    })
+    .eq("project_id", projectId)
+    .eq("scene_number", sceneNumber)
+    .select()
+    .single();
+
+  if (error) {
+    throw new Error(
+      `Failed to save scene image: ${error.message}`
+    );
+  }
+
+  return data;
+}
+
+export async function deleteProject(
+  projectId: string
+) {
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError) {
+    throw new Error(userError.message);
+  }
+
+  if (!user) {
+    throw new Error(
+      "You must be signed in."
+    );
+  }
+
+  /*
+   * Verify that the project belongs
+   * to the current authenticated user.
+   */
+  const {
+    data: project,
+    error: projectError,
+  } = await supabase
+    .from("projects")
+    .select("id")
+    .eq("id", projectId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (projectError || !project) {
+    throw new Error(
+      "Project not found or you do not have permission to delete it."
+    );
+  }
+
+  /*
+   * Get all generated image paths
+   * before deleting the scene records.
+   */
+  const {
+    data: sceneRows,
+    error: sceneError,
+  } = await supabase
+    .from("scenes")
+    .select("image_url")
+    .eq("project_id", projectId);
+
+  if (sceneError) {
+    throw new Error(
+      sceneError.message
+    );
+  }
+
+  const imagePaths =
+    (sceneRows ?? [])
+      .map(
+        (scene) => scene.image_url
+      )
+      .filter(
+        (path): path is string =>
+          typeof path === "string" &&
+          path.trim().length > 0 &&
+          path.includes("/")
+      );
+
+  /*
+   * Delete generated images from
+   * Supabase Storage.
+   */
+  if (imagePaths.length > 0) {
+    const {
+      error: storageError,
+    } = await supabase.storage
+      .from("bnutt-assets")
+      .remove(imagePaths);
+
+    if (storageError) {
+      throw new Error(
+        `Failed to delete project images: ${storageError.message}`
+      );
+    }
+  }
+
+  /*
+   * Delete the project itself.
+   *
+   * If your foreign keys use ON DELETE
+   * CASCADE, associated scenes and
+   * characters will be deleted too.
+   */
+  const {
+    error: deleteError,
+  } = await supabase
+    .from("projects")
+    .delete()
+    .eq("id", projectId)
+    .eq("user_id", user.id);
+
+  if (deleteError) {
+    throw new Error(
+      `Failed to delete project: ${deleteError.message}`
+    );
+  }
+
+  return true;
 }
