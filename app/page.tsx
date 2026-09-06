@@ -12,11 +12,20 @@ import {
   loadProject,
   saveStoryboardProject,
   updateSceneImage,
+  updateSceneVideo,
   deleteProject,
   SavedProject,
 } from "@/lib/projectRepository";
 
-import { uploadSceneImage } from "@/lib/storageRepository";
+import {
+  uploadSceneImage,
+  getSceneVideoUrl,
+} from "@/lib/storageRepository";
+
+import {
+  createVideoJob,
+  getVideoJob,
+} from "@/lib/videoJobRepository";
 
 import { Scene } from "@/types/story";
 import { Character } from "@/types/character";
@@ -62,6 +71,15 @@ export default function Home() {
     useState<Record<number, string>>({});
 
   const [generatedImages, setGeneratedImages] =
+    useState<Record<number, string>>({});
+
+  const [generatingVideos, setGeneratingVideos] =
+    useState<Record<number, boolean>>({});
+
+  const [videoErrors, setVideoErrors] =
+    useState<Record<number, string>>({});
+
+  const [generatedVideos, setGeneratedVideos] =
     useState<Record<number, string>>({});
 
   useEffect(() => {
@@ -112,12 +130,14 @@ export default function Home() {
     );
 
     setGeneratedImages({});
+    setGeneratedVideos({});
     setImageErrors({});
+    setVideoErrors({});
 
     setCurrentProjectId(null);
 
     setMessage(
-      "Storyboard generated successfully. Save the project before generating permanent images."
+      "Storyboard generated successfully. Save the project before generating permanent images and videos."
     );
   }
 
@@ -126,6 +146,7 @@ export default function Home() {
       setMessage(
         "Please enter a story first."
       );
+
       return;
     }
 
@@ -133,6 +154,7 @@ export default function Home() {
       setMessage(
         "Generate the storyboard before saving."
       );
+
       return;
     }
 
@@ -162,7 +184,7 @@ export default function Home() {
       );
 
       setMessage(
-        "Project saved successfully. You can now generate AI images."
+        "Project saved successfully. You can now generate AI images and videos."
       );
 
       await loadProjects();
@@ -214,14 +236,11 @@ export default function Home() {
         project.scenes
       );
 
-      /*
-       * Loaded scenes may already contain
-       * signed Supabase image URLs.
-       */
-      const loadedImages: Record<
-        number,
-        string
-      > = {};
+      const loadedImages:
+        Record<number, string> = {};
+
+      const loadedVideos:
+        Record<number, string> = {};
 
       project.scenes.forEach(
         (scene) => {
@@ -232,6 +251,14 @@ export default function Home() {
               scene.id
             ] = scene.imageUrl;
           }
+
+          if (
+            scene.videoUrl
+          ) {
+            loadedVideos[
+              scene.id
+            ] = scene.videoUrl;
+          }
         }
       );
 
@@ -239,7 +266,12 @@ export default function Home() {
         loadedImages
       );
 
+      setGeneratedVideos(
+        loadedVideos
+      );
+
       setImageErrors({});
+      setVideoErrors({});
 
       setMessage(
         `"${project.name}" loaded successfully.`
@@ -263,7 +295,7 @@ export default function Home() {
   ) {
     const confirmed =
       window.confirm(
-        `Are you sure you want to delete "${projectName}"? This will permanently delete the project and its generated images.`
+        `Are you sure you want to delete "${projectName}"? This will permanently delete the project and its generated images and videos.`
       );
 
     if (!confirmed) {
@@ -279,10 +311,6 @@ export default function Home() {
         projectId
       );
 
-      /*
-       * If the deleted project is
-       * currently open, clear the UI.
-       */
       if (
         currentProjectId ===
         projectId
@@ -309,17 +337,23 @@ export default function Home() {
   }
 
   function handleNewProject() {
-    /*
-     * Revoke temporary browser URLs
-     * before clearing them.
-     */
     Object.values(
       generatedImages
     ).forEach((url) => {
       if (
-        url.startsWith(
-          "blob:"
-        )
+        url.startsWith("blob:")
+      ) {
+        URL.revokeObjectURL(
+          url
+        );
+      }
+    });
+
+    Object.values(
+      generatedVideos
+    ).forEach((url) => {
+      if (
+        url.startsWith("blob:")
       ) {
         URL.revokeObjectURL(
           url
@@ -346,10 +380,13 @@ export default function Home() {
     );
 
     setGeneratedImages({});
+    setGeneratedVideos({});
 
     setImageErrors({});
+    setVideoErrors({});
 
     setGeneratingImages({});
+    setGeneratingVideos({});
 
     setMessage("");
   }
@@ -361,6 +398,7 @@ export default function Home() {
       setImageErrors(
         (current) => ({
           ...current,
+
           [scene.id]:
             "Please save the project before generating an image.",
         })
@@ -372,6 +410,7 @@ export default function Home() {
     setGeneratingImages(
       (current) => ({
         ...current,
+
         [scene.id]: true,
       })
     );
@@ -441,9 +480,6 @@ export default function Home() {
         );
       }
 
-      /*
-       * Upload image to Supabase Storage.
-       */
       const imagePath =
         await uploadSceneImage(
           currentProjectId,
@@ -451,27 +487,17 @@ export default function Home() {
           blob
         );
 
-      /*
-       * Save Storage path in database.
-       */
       await updateSceneImage(
         currentProjectId,
         scene.id,
         imagePath
       );
 
-      /*
-       * Display immediately.
-       */
       const imageUrl =
         URL.createObjectURL(
           blob
         );
 
-      /*
-       * Revoke the previous temporary
-       * URL if one exists.
-       */
       const previousUrl =
         generatedImages[
           scene.id
@@ -490,15 +516,12 @@ export default function Home() {
       setGeneratedImages(
         (current) => ({
           ...current,
+
           [scene.id]:
             imageUrl,
         })
       );
 
-      /*
-       * Update local scene state with
-       * the Storage path.
-       */
       setScenes(
         (currentScenes) =>
           currentScenes.map(
@@ -507,6 +530,7 @@ export default function Home() {
               scene.id
                 ? {
                     ...currentScene,
+
                     imageUrl:
                       imagePath,
                   }
@@ -526,6 +550,7 @@ export default function Home() {
       setImageErrors(
         (current) => ({
           ...current,
+
           [scene.id]:
             errorMessage,
         })
@@ -534,6 +559,200 @@ export default function Home() {
       setGeneratingImages(
         (current) => ({
           ...current,
+
+          [scene.id]: false,
+        })
+      );
+    }
+  }
+
+  async function handleGenerateVideo(
+    scene: Scene
+  ) {
+    if (!currentProjectId) {
+      setVideoErrors(
+        (current) => ({
+          ...current,
+
+          [scene.id]:
+            "Please save the project before generating a video.",
+        })
+      );
+
+      return;
+    }
+
+    const imagePath = scene.imageUrl;
+
+    if (!imagePath) {
+      setVideoErrors(
+        (current) => ({
+          ...current,
+
+          [scene.id]:
+            "Generate the scene image first.",
+        })
+      );
+
+      return;
+    }
+
+    setGeneratingVideos(
+      (current) => ({
+        ...current,
+
+        [scene.id]: true,
+      })
+    );
+
+    setVideoErrors(
+      (current) => {
+        const updated = {
+          ...current,
+        };
+
+        delete updated[
+          scene.id
+        ];
+
+        return updated;
+      }
+    );
+
+    try {
+      const job =
+        await createVideoJob(
+          currentProjectId,
+          scene.id,
+          imagePath,
+          scene.animationPrompt
+        );
+
+      setMessage(
+        `Scene ${scene.id} video job queued. Waiting for the free GPU worker...`
+      );
+
+      let finished = false;
+
+      while (!finished) {
+        await new Promise<void>(
+          (resolve) => {
+            window.setTimeout(
+              resolve,
+              5000
+            );
+          }
+        );
+
+        const currentJob =
+          await getVideoJob(job.id);
+
+        if (!currentJob) {
+          throw new Error(
+            "Video job could not be found."
+          );
+        }
+
+        if (
+          currentJob.status ===
+          "processing"
+        ) {
+          setMessage(
+            `Scene ${scene.id} video is being generated on the free GPU worker...`
+          );
+        }
+
+        if (
+          currentJob.status ===
+          "failed"
+        ) {
+          throw new Error(
+            currentJob.errorMessage ||
+              "Video generation failed."
+          );
+        }
+
+        if (
+          currentJob.status ===
+          "completed"
+        ) {
+          if (!currentJob.videoPath) {
+            throw new Error(
+              "Video job completed but no video file was saved."
+            );
+          }
+
+          const videoUrl =
+            await getSceneVideoUrl(
+              currentJob.videoPath
+            );
+
+          const previousUrl =
+            generatedVideos[
+              scene.id
+            ];
+
+          if (
+            previousUrl?.startsWith(
+              "blob:"
+            )
+          ) {
+            URL.revokeObjectURL(
+              previousUrl
+            );
+          }
+
+          setGeneratedVideos(
+            (current) => ({
+              ...current,
+
+              [scene.id]:
+                videoUrl,
+            })
+          );
+
+          setScenes(
+            (currentScenes) =>
+              currentScenes.map(
+                (currentScene) =>
+                  currentScene.id ===
+                  scene.id
+                    ? {
+                        ...currentScene,
+
+                        videoUrl:
+                          currentJob.videoPath,
+                      }
+                    : currentScene
+              )
+          );
+
+          setMessage(
+            `Scene ${scene.id} video generated and saved successfully.`
+          );
+
+          finished = true;
+        }
+      }
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Video generation failed.";
+
+      setVideoErrors(
+        (current) => ({
+          ...current,
+
+          [scene.id]:
+            errorMessage,
+        })
+      );
+    } finally {
+      setGeneratingVideos(
+        (current) => ({
+          ...current,
+
           [scene.id]: false,
         })
       );
@@ -542,7 +761,6 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-gray-100 p-8">
-
       <div className="mx-auto max-w-6xl">
 
         {/* Header */}
@@ -604,8 +822,7 @@ export default function Home() {
                   event
                 ) =>
                   setProjectName(
-                    event.target
-                      .value
+                    event.target.value
                   )
                 }
                 className="mb-5 w-full rounded-lg border border-gray-300 p-3 focus:outline-none focus:ring-2 focus:ring-black"
@@ -622,8 +839,7 @@ export default function Home() {
                   event
                 ) =>
                   setStory(
-                    event.target
-                      .value
+                    event.target.value
                   )
                 }
                 placeholder="Write your story here..."
@@ -642,8 +858,7 @@ export default function Home() {
                   event
                 ) =>
                   setAnimationStyle(
-                    event.target
-                      .value as AnimationStyle
+                    event.target.value as AnimationStyle
                   )
                 }
                 className="mb-5 w-full rounded-lg border border-gray-300 bg-white p-3"
@@ -716,7 +931,7 @@ export default function Home() {
                 <p className="mt-3 text-xs text-gray-500">
                   Project saved and
                   ready for AI image
-                  generation.
+                  and video generation.
                 </p>
               )}
 
@@ -861,13 +1076,37 @@ export default function Home() {
                       className="mb-6 overflow-hidden rounded-xl bg-white shadow-md"
                     >
 
-                      {/* Image */}
+                      {/* Media */}
 
-                      <div className="relative flex min-h-64 items-center justify-center bg-gray-200">
+                      <div className="relative bg-gray-200">
 
-                        {generatedImages[
+                        {generatedVideos[
                           scene.id
                         ] ? (
+
+                          <div className="bg-black">
+
+                            <video
+                              key={
+                                generatedVideos[
+                                  scene.id
+                                ]
+                              }
+                              src={
+                                generatedVideos[
+                                  scene.id
+                                ]
+                              }
+                              controls
+                              playsInline
+                              className="mx-auto max-h-[600px] w-full object-contain"
+                            />
+
+                          </div>
+
+                        ) : generatedImages[
+                            scene.id
+                          ] ? (
 
                           <img
                             src={
@@ -920,10 +1159,12 @@ export default function Home() {
 
                         )}
 
+                        {/* Image controls */}
+
                         {generatedImages[
                           scene.id
                         ] && (
-                          <div className="absolute bottom-4 right-4">
+                          <div className="absolute bottom-4 right-4 flex flex-wrap gap-2">
 
                             <button
                               onClick={() =>
@@ -950,6 +1191,67 @@ export default function Home() {
 
                       </div>
 
+                      {/* Video Controls */}
+
+                      <div className="border-t border-gray-200 bg-white p-4">
+
+                        <div className="flex flex-wrap gap-3">
+
+                          <button
+                            onClick={() =>
+                              handleGenerateVideo(
+                                scene
+                              )
+                            }
+                            disabled={
+                              generatingVideos[
+                                scene.id
+                              ] ||
+                              !currentProjectId ||
+                              !(
+                                generatedImages[
+                                  scene.id
+                                ] ||
+                                scene.imageUrl
+                              )
+                            }
+                            className="rounded-lg bg-indigo-600 px-5 py-2.5 font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-gray-400"
+                          >
+                            {generatingVideos[
+                              scene.id
+                            ]
+                              ? "Generating Video..."
+                              : generatedVideos[
+                                  scene.id
+                                ]
+                              ? "Regenerate Video"
+                              : "Generate Video"}
+                          </button>
+
+                          {!currentProjectId && (
+                            <p className="flex items-center text-xs text-gray-500">
+                              Save the project
+                              first.
+                            </p>
+                          )}
+
+                          {currentProjectId &&
+                            !(
+                              generatedImages[
+                                scene.id
+                              ] ||
+                              scene.imageUrl
+                            ) && (
+                              <p className="flex items-center text-xs text-gray-500">
+                                Generate an image
+                                first.
+                              </p>
+                            )}
+
+                        </div>
+
+                      </div>
+
                       {/* Image Error */}
 
                       {imageErrors[
@@ -964,6 +1266,27 @@ export default function Home() {
 
                           {
                             imageErrors[
+                              scene.id
+                            ]
+                          }
+
+                        </div>
+                      )}
+
+                      {/* Video Error */}
+
+                      {videoErrors[
+                        scene.id
+                      ] && (
+                        <div className="bg-red-50 p-4 text-sm text-red-700">
+
+                          <strong>
+                            Video generation
+                            error:
+                          </strong>{" "}
+
+                          {
+                            videoErrors[
                               scene.id
                             ]
                           }
@@ -1325,7 +1648,6 @@ export default function Home() {
         </div>
 
       </div>
-
     </main>
   );
 }

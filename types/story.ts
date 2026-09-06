@@ -27,6 +27,8 @@ export interface Scene {
 
   imageUrl: string | null;
 
+  videoUrl: string | null;
+
   animationStyle: AnimationStyle;
 
   continuity: SceneContinuity;

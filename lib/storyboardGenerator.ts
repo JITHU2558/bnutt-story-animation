@@ -180,6 +180,8 @@ export function generateStoryboard(
 
         imageUrl: null,
 
+        videoUrl: null,
+
         animationStyle,
 
         continuity: {

@@ -3,7 +3,10 @@ import { Character } from "@/types/character";
 import { Scene } from "@/types/story";
 import { AnimationStyle } from "@/types/animationStyle";
 import { analyzeSceneContinuity } from "@/lib/continuityAnalyzer";
-import { getSceneImageUrl } from "@/lib/storageRepository";
+import {
+  getSceneImageUrl,
+  getSceneVideoUrl,
+} from "@/lib/storageRepository";
 
 export interface CreateProjectInput {
   name: string;
@@ -117,6 +120,7 @@ export async function saveScenes(
     image_prompt: scene.imagePrompt,
     animation_prompt: scene.animationPrompt,
     image_url: scene.imageUrl ?? null,
+    video_url: scene.videoUrl ?? null,
   }));
 
   const { error } = await supabase
@@ -247,18 +251,29 @@ export async function loadProject(
     (characterRows ?? []).map(
       (character, index) => ({
         id: index + 1,
+
         name: character.name,
+
         type: character.type,
+
         appearance:
           character.appearance ?? "",
-        eyes: character.eyes ?? "",
+
+        eyes:
+          character.eyes ?? "",
+
         clothing:
           character.clothing ?? "",
+
         personality:
           character.personality ?? "",
-        role: character.role ?? "",
+
+        role:
+          character.role ?? "",
+
         visualStyle:
           character.visual_style as AnimationStyle,
+
         referenceDescription:
           character.reference_description ??
           "",
@@ -266,92 +281,154 @@ export async function loadProject(
     );
 
   const rawScenes: Scene[] =
-    (sceneRows ?? []).map((scene) => ({
-      id: scene.scene_number,
+    (sceneRows ?? []).map(
+      (scene) => ({
+        id:
+          scene.scene_number,
 
-      title:
-        scene.title ?? "",
+        title:
+          scene.title ?? "",
 
-      description:
-        scene.description ?? "",
+        description:
+          scene.description ?? "",
 
-      characters:
-        scene.characters ?? [],
+        characters:
+          scene.characters ?? [],
 
-      location:
-        scene.location ?? "",
+        location:
+          scene.location ?? "",
 
-      objects:
-        scene.objects ?? [],
+        objects:
+          scene.objects ?? [],
 
-      objectEntities: [],
+        objectEntities: [],
 
-      action:
-        scene.action ?? "",
+        action:
+          scene.action ?? "",
 
-      camera:
-        scene.camera ?? "",
+        camera:
+          scene.camera ?? "",
 
-      imagePrompt:
-        scene.image_prompt ?? "",
+        imagePrompt:
+          scene.image_prompt ?? "",
 
-      animationPrompt:
-        scene.animation_prompt ?? "",
+        animationPrompt:
+          scene.animation_prompt ?? "",
 
-      imageUrl:
-        scene.image_url ?? null,
+        imageUrl:
+          scene.image_url ?? null,
 
-      animationStyle:
-        scene.animation_style as AnimationStyle,
+        videoUrl:
+          scene.video_url ?? null,
 
-      continuity: {
-        previousSceneId: null,
-        nextSceneId: null,
-        continuingCharacters: [],
-        continuingObjects: [],
-        previousLocation: null,
-      },
-    }));
+        animationStyle:
+          scene.animation_style as AnimationStyle,
 
-  const scenes =
-    analyzeSceneContinuity(rawScenes);
+        continuity: {
+          previousSceneId:
+            null,
 
-  const scenesWithImages =
-    await Promise.all(
-      scenes.map(async (scene) => {
-        if (!scene.imageUrl) {
-          return scene;
-        }
+          nextSceneId:
+            null,
 
-        try {
-          const signedUrl =
-            await getSceneImageUrl(
-              scene.imageUrl
-            );
+          continuingCharacters:
+            [],
 
-          return {
-            ...scene,
-            imageUrl: signedUrl,
-          };
-        } catch {
-          return scene;
-        }
+          continuingObjects:
+            [],
+
+          previousLocation:
+            null,
+        },
       })
     );
 
+  const scenes =
+    analyzeSceneContinuity(
+      rawScenes
+    );
+
+  /*
+   * Convert private Storage paths
+   * into temporary signed URLs.
+   */
+  const scenesWithMedia =
+    await Promise.all(
+      scenes.map(
+        async (scene) => {
+          let imageUrl =
+            scene.imageUrl;
+
+          let videoUrl =
+            scene.videoUrl;
+
+          /*
+           * Generate signed image URL.
+           */
+          if (
+            imageUrl &&
+            !imageUrl.startsWith(
+              "http"
+            )
+          ) {
+            try {
+              imageUrl =
+                await getSceneImageUrl(
+                  imageUrl
+                );
+            } catch {
+              imageUrl =
+                scene.imageUrl;
+            }
+          }
+
+          /*
+           * Generate signed video URL.
+           */
+          if (
+            videoUrl &&
+            !videoUrl.startsWith(
+              "http"
+            )
+          ) {
+            try {
+              videoUrl =
+                await getSceneVideoUrl(
+                  videoUrl
+                );
+            } catch {
+              videoUrl =
+                scene.videoUrl;
+            }
+          }
+
+          return {
+            ...scene,
+            imageUrl,
+            videoUrl,
+          };
+        }
+      )
+    );
+
   return {
-    id: project.id,
+    id:
+      project.id,
 
-    name: project.name,
+    name:
+      project.name,
 
-    story: project.story,
+    story:
+      project.story,
 
     animationStyle:
       project.animation_style as AnimationStyle,
 
-    characters: loadedCharacters,
+    characters:
+      loadedCharacters,
 
-    scenes: scenesWithImages,
+    scenes:
+      scenesWithMedia,
   };
 }
 
@@ -375,21 +452,85 @@ export async function updateSceneImage(
     );
   }
 
-  const { data, error } = await supabase
+  const { data, error } =
+    await supabase
+      .from("scenes")
+      .update({
+        image_url:
+          imagePath,
+
+        updated_at:
+          new Date().toISOString(),
+      })
+      .eq(
+        "project_id",
+        projectId
+      )
+      .eq(
+        "scene_number",
+        sceneNumber
+      )
+      .select()
+      .single();
+
+  if (error) {
+    throw new Error(
+      `Failed to save scene image: ${error.message}`
+    );
+  }
+
+  return data;
+}
+
+export async function updateSceneVideo(
+  projectId: string,
+  sceneNumber: number,
+  videoPath: string
+) {
+  const {
+    data: { user },
+    error: userError,
+  } =
+    await supabase.auth.getUser();
+
+  if (userError) {
+    throw new Error(
+      userError.message
+    );
+  }
+
+  if (!user) {
+    throw new Error(
+      "You must be signed in."
+    );
+  }
+
+  const {
+    data,
+    error,
+  } = await supabase
     .from("scenes")
     .update({
-      image_url: imagePath,
+      video_url:
+        videoPath,
+
       updated_at:
         new Date().toISOString(),
     })
-    .eq("project_id", projectId)
-    .eq("scene_number", sceneNumber)
+    .eq(
+      "project_id",
+      projectId
+    )
+    .eq(
+      "scene_number",
+      sceneNumber
+    )
     .select()
     .single();
 
   if (error) {
     throw new Error(
-      `Failed to save scene image: ${error.message}`
+      `Failed to save scene video: ${error.message}`
     );
   }
 
@@ -402,10 +543,13 @@ export async function deleteProject(
   const {
     data: { user },
     error: userError,
-  } = await supabase.auth.getUser();
+  } =
+    await supabase.auth.getUser();
 
   if (userError) {
-    throw new Error(userError.message);
+    throw new Error(
+      userError.message
+    );
   }
 
   if (!user) {
@@ -415,36 +559,52 @@ export async function deleteProject(
   }
 
   /*
-   * Verify that the project belongs
-   * to the current authenticated user.
+   * Make sure this project belongs
+   * to the current user.
    */
   const {
     data: project,
     error: projectError,
-  } = await supabase
-    .from("projects")
-    .select("id")
-    .eq("id", projectId)
-    .eq("user_id", user.id)
-    .single();
+  } =
+    await supabase
+      .from("projects")
+      .select("id")
+      .eq(
+        "id",
+        projectId
+      )
+      .eq(
+        "user_id",
+        user.id
+      )
+      .single();
 
-  if (projectError || !project) {
+  if (
+    projectError ||
+    !project
+  ) {
     throw new Error(
       "Project not found or you do not have permission to delete it."
     );
   }
 
   /*
-   * Get all generated image paths
-   * before deleting the scene records.
+   * Get image and video paths before
+   * deleting the database records.
    */
   const {
     data: sceneRows,
     error: sceneError,
-  } = await supabase
-    .from("scenes")
-    .select("image_url")
-    .eq("project_id", projectId);
+  } =
+    await supabase
+      .from("scenes")
+      .select(
+        "image_url, video_url"
+      )
+      .eq(
+        "project_id",
+        projectId
+      );
 
   if (sceneError) {
     throw new Error(
@@ -455,25 +615,54 @@ export async function deleteProject(
   const imagePaths =
     (sceneRows ?? [])
       .map(
-        (scene) => scene.image_url
+        (scene) =>
+          scene.image_url
       )
       .filter(
-        (path): path is string =>
-          typeof path === "string" &&
-          path.trim().length > 0 &&
+        (
+          path
+        ): path is string =>
+          typeof path ===
+            "string" &&
+          path.trim().length >
+            0 &&
+          path.includes("/")
+      );
+
+  const videoPaths =
+    (sceneRows ?? [])
+      .map(
+        (scene) =>
+          scene.video_url
+      )
+      .filter(
+        (
+          path
+        ): path is string =>
+          typeof path ===
+            "string" &&
+          path.trim().length >
+            0 &&
           path.includes("/")
       );
 
   /*
-   * Delete generated images from
-   * Supabase Storage.
+   * Delete generated images.
    */
-  if (imagePaths.length > 0) {
+  if (
+    imagePaths.length >
+    0
+  ) {
     const {
       error: storageError,
-    } = await supabase.storage
-      .from("bnutt-assets")
-      .remove(imagePaths);
+    } =
+      await supabase.storage
+        .from(
+          "bnutt-assets"
+        )
+        .remove(
+          imagePaths
+        );
 
     if (storageError) {
       throw new Error(
@@ -483,19 +672,52 @@ export async function deleteProject(
   }
 
   /*
-   * Delete the project itself.
+   * Delete generated videos.
+   */
+  if (
+    videoPaths.length >
+    0
+  ) {
+    const {
+      error: storageError,
+    } =
+      await supabase.storage
+        .from(
+          "bnutt-assets"
+        )
+        .remove(
+          videoPaths
+        );
+
+    if (storageError) {
+      throw new Error(
+        `Failed to delete project videos: ${storageError.message}`
+      );
+    }
+  }
+
+  /*
+   * Delete the project.
    *
-   * If your foreign keys use ON DELETE
-   * CASCADE, associated scenes and
-   * characters will be deleted too.
+   * Scenes and characters should be
+   * removed automatically when the
+   * database relationships use
+   * ON DELETE CASCADE.
    */
   const {
     error: deleteError,
-  } = await supabase
-    .from("projects")
-    .delete()
-    .eq("id", projectId)
-    .eq("user_id", user.id);
+  } =
+    await supabase
+      .from("projects")
+      .delete()
+      .eq(
+        "id",
+        projectId
+      )
+      .eq(
+        "user_id",
+        user.id
+      );
 
   if (deleteError) {
     throw new Error(
